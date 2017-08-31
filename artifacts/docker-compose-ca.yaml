@@ -1,0 +1,21 @@
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+version: '2'
+
+services:
+
+  ca.org1.example.com:
+    container_name: ca_peerOrg1
+    extends:
+      file: docker-compose.yaml
+      service: ca.org1.example.com
+
+  ca.org2.example.com:
+    container_name: ca_peerOrg2
+    extends:
+      file: docker-compose.yaml
+      service: ca.org2.example.com
+
