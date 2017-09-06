@@ -8,7 +8,7 @@
 
 function startCaAndOrderer() {
 	echo
-
+	./cleanFabric.sh
         #teardown the network and clean the containers and intermediate images
 	cd artifacts
 
