@@ -27,7 +27,7 @@ hfc.addConfigFile(path.join(__dirname, 'network-config.json'));
 var ORGS = hfc.getConfigSetting('network-config');
 
 var invokeChaincode = function(peersUrls, channelName, chaincodeName, fcn, args, username, org) {
-	logger.debug(util.format('\n============ invoke transaction on organization %s ============\n', org));
+	logger.error(util.format('\n============ invoke transaction on organization %s ============\n', org));
 	var client = helper.getClientForOrg(org);
 	var channel = helper.getChannelForOrg(org);
 	var targets = helper.newPeers(peersUrls);
@@ -37,6 +37,7 @@ var invokeChaincode = function(peersUrls, channelName, chaincodeName, fcn, args,
 		tx_id = client.newTransactionID();
 		logger.debug(util.format('Sending transaction "%j"', tx_id));
 		// send proposal to endorser
+		console.log(JSON.stringify(args));
 		var request = {
 			targets: targets,
 			chaincodeId: chaincodeName,

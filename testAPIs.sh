@@ -56,7 +56,7 @@ curl -s -X POST \
   -H "authorization: Bearer $ORG1_TOKEN" \
   -H "content-type: application/json" \
   -d '{
-	"peers": ["192.168.86.131:7051"]
+	"peers": ["localhost:7051"]
 }'
 echo
 echo
@@ -68,7 +68,7 @@ curl -s -X POST \
   -H "authorization: Bearer $ORG2_TOKEN" \
   -H "content-type: application/json" \
   -d '{
-	"peers": ["192.168.86.132:7051"]
+	"peers": ["localhost:8051"]
 }'
 echo
 echo
@@ -80,7 +80,7 @@ curl -s -X POST \
   -H "authorization: Bearer $ORG1_TOKEN" \
   -H "content-type: application/json" \
   -d '{
-	"peers": ["192.168.86.131:7051"],
+	"peers": ["localhost:7051"],
 	"chaincodeName":"mycc",
 	"chaincodePath":"github.com/example_cc",
 	"chaincodeVersion":"v0"
@@ -96,7 +96,7 @@ curl -s -X POST \
   -H "authorization: Bearer $ORG2_TOKEN" \
   -H "content-type: application/json" \
   -d '{
-	"peers": ["192.168.86.132:7051"],
+	"peers": ["localhost:8051"],
 	"chaincodeName":"mycc",
 	"chaincodePath":"github.com/example_cc",
 	"chaincodeVersion":"v0"
@@ -126,7 +126,7 @@ TRX_ID=$(curl -s -X POST \
   -H "authorization: Bearer $ORG1_TOKEN" \
   -H "content-type: application/json" \
   -d '{
-	"peers": ["192.168.86.131:7051"],
+	"peers": ["localhost:7051"],
 	"fcn":"move",
 	"args":["a","b","10"]
 }')
@@ -141,7 +141,7 @@ TRX_ID=$(curl -s -X POST \
   -H "authorization: Bearer $ORG2_TOKEN" \
   -H "content-type: application/json" \
   -d '{
-  "peers": ["192.168.86.132:7051"],
+  "peers": ["localhost:8051"],
   "fcn":"move",
   "args":["a","b","10"]
 }')

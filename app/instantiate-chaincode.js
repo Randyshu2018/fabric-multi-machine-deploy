@@ -23,7 +23,11 @@ var EventHub = require('fabric-client/lib/EventHub.js');
 var config = require('../config.json');
 var helper = require('./helper.js');
 var logger = helper.getLogger('instantiate-chaincode');
-hfc.addConfigFile(path.join(__dirname, 'network-config.json'));
+if (config.enableTLS) {
+    hfc.addConfigFile(path.join(__dirname, 'network-config.json'));
+} else {
+    hfc.addConfigFile(path.join(__dirname, 'network-config-notls.json'));
+}
 var ORGS = hfc.getConfigSetting('network-config');
 var tx_id = null;
 var eh = null;
@@ -88,13 +92,24 @@ var instantiateChaincode = function(channelName, chaincodeName, chaincodeVersion
 			var deployId = tx_id.getTransactionID();
 
 			eh = client.newEventHub();
-			let data = fs.readFileSync(path.join(__dirname, ORGS[org]['peer1'][
-				'tls_cacerts'
-			]));
-			eh.setPeerAddr(ORGS[org]['peer1']['events'], {
-				pem: Buffer.from(data).toString(),
-				'ssl-target-name-override': ORGS[org]['peer1']['server-hostname']
-			});
+            if (config.enableTLS) {
+                let data = fs.readFileSync(path.join(__dirname, ORGS[org]['peer1'][
+                    'tls_cacerts'
+                    ]));
+                eh.setPeerAddr(ORGS[org]['peer1']['events'], {
+                    pem: Buffer.from(data).toString(),
+                    'ssl-target-name-override': ORGS[org]['peer1']['server-hostname']
+                });
+            } else {
+                eh.setPeerAddr(ORGS[org]['peer1']['events']);
+            }
+			// let data = fs.readFileSync(path.join(__dirname, ORGS[org]['peer1'][
+			// 	'tls_cacerts'
+			// ]));
+			// eh.setPeerAddr(ORGS[org]['peer1']['events'], {
+			// 	pem: Buffer.from(data).toString(),
+			// 	'ssl-target-name-override': ORGS[org]['peer1']['server-hostname']
+			// });
 			eh.connect();
 
 			let txPromise = new Promise((resolve, reject) => {

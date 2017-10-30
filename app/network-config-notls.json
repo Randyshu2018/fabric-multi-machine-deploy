@@ -1,0 +1,27 @@
+{
+	"network-config": {
+		"orderer": {
+			"url": "grpc://localhost:7050",
+			"server-hostname": "orderer.example.com",
+			"admin": {
+				"key": "../artifacts/channel/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/keystore",
+				"cert": "../artifacts/channel/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/signcerts"
+			}
+		},
+		"org1": {
+			"name": "peerOrg1",
+			"mspid": "Org1MSP",
+			"ca": "http://localhost:7054",
+			"peer1": {
+				"requests": "grpc://localhost:7051",
+				"events": "grpc://localhost:7053",
+				"server-hostname": "peer0.org1.example.com"
+			},
+			"admin": {
+				"key": "../artifacts/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore",
+				"cert": "../artifacts/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts"
+			}
+
+		}
+	}
+}

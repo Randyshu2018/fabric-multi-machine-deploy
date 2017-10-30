@@ -37,6 +37,8 @@ var invoke = require('./app/invoke-transaction.js');
 var query = require('./app/query.js');
 var host = process.env.HOST || config.host;
 var port = process.env.PORT || config.port;
+var channelName = config.channelName;
+var chaincodeName = config.chaincodeName;
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// SET CONFIGURATONS ////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -53,13 +55,17 @@ app.set('secret', 'thisismysecret');
 app.use(expressJWT({
 	secret: 'thisismysecret'
 }).unless({
-	path: ['/users']
+	path: ['/users','/^\\/static\\/.*/']
 }));
+app.use('/static', express.static('public'));
 app.use(bearerToken());
 app.use(function(req, res, next) {
 	if (req.originalUrl.indexOf('/users') >= 0) {
 		return next();
 	}
+    if (req.originalUrl.indexOf('/static') >= 0) {
+        return next();
+    }
 
 	var token = req.token;
 	jwt.verify(token, app.get('secret'), function(err, decoded) {
@@ -82,6 +88,24 @@ app.use(function(req, res, next) {
 	});
 });
 
+app.use(function (err, req, res, next) {
+    var status;
+    var message;
+    var code;
+    //expreeJWT error
+    if (err.name == 'UnauthorizedError' && err.inner) {
+        status = 401;
+        code = "token_error";
+    } else {
+        status = err.status;
+    }
+    res.status(status).send({
+        "success": false,
+        "code": code,
+        "message": err.message
+    });
+});
+
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// START SERVER /////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -98,6 +122,16 @@ function getErrorMessage(field) {
 	};
 	return response;
 }
+//update configtx by file
+app.post('/configtxlator/:channelName/', function (req, res) {
+    var channelName = req.params.channelName;
+    var configPath = req.body.configPath;
+    var configtxlator = require('./app/configtxlator.js');
+    configtxlator.updateChannelConfigByFile(channelName, req.orgname, configPath)
+        .then(function (message) {
+            res.send(message);
+        });
+});
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////// REST ENDPOINTS START HERE ///////////////////////////
@@ -218,6 +252,7 @@ app.post('/channels/:channelName/chaincodes', function(req, res) {
 	var channelName = req.params.channelName;
 	var functionName = req.body.functionName;
 	var args = req.body.args;
+	var updateFlag = req.body.updateFlag;
 	logger.debug('channelName  : ' + channelName);
 	logger.debug('chaincodeName : ' + chaincodeName);
 	logger.debug('chaincodeVersion  : ' + chaincodeVersion);
@@ -243,7 +278,7 @@ app.post('/channels/:channelName/chaincodes', function(req, res) {
 		res.json(getErrorMessage('\'args\''));
 		return;
 	}
-	instantiate.instantiateChaincode(channelName, chaincodeName, chaincodeVersion, functionName, args, req.username, req.orgname)
+	instantiate.instantiateChaincode(channelName, chaincodeName, chaincodeVersion, functionName, args, req.username, req.orgname, updateFlag)
 	.then(function(message) {
 		res.send(message);
 	});
@@ -423,3 +458,184 @@ app.get('/channels', function(req, res) {
 		res.send(message);
 	});
 });
+
+var insert = function (table, data, username, orgname) {
+    return new Promise(function (reslove, reject) {
+
+        if (!data || data.length == 0) {
+            reject('request body can not be empty');
+        }
+        var id = "";
+        try {
+            if (typeof data == "String") {
+                id = JSON.parse(data).id;
+            } else if (typeof data == "object") {
+                id = data.id;
+            } else {
+                logger.warn("typeof data:" + (typeof data));
+            }
+        } catch (err) {
+            logger.error(err);
+            reject('json parse Error');
+        } finally {
+            if (id == null || id == undefined || id == "") {
+                reject('request param id must be specify');
+            }
+        }
+
+        var jsonObject = {
+            "Table": table,
+            "Key": id.toString(),
+            "Data": data,
+            "Timestamp": Math.round(new Date().getTime() / 1000)
+        };
+
+        var args = [];
+        args[2] = JSON.stringify(jsonObject);
+        args[1] = id.toString();
+        args[0] = table;
+        logger.info(args);
+
+        if (!args) {
+            reject('args field is missing or Invalid in the request');
+        }
+
+        var peers =getPeers();
+        var fcn = 'update';
+        invoke.invokeChaincode(peers, channelName, chaincodeName, fcn, args, username, orgname)
+            .then(function (message) {
+            	console.log("message:"+JSON.stringify(message));
+                if (message && message.indexOf("Error") == -1) {
+                    reslove(message);
+                } else {
+                    reject(message);
+                }
+            });
+    })
+};
+
+
+
+
+//根据表名和参数新增单笔数据
+app.post('/insert/:table', function (req, res) {
+
+    insert(req.params.table, req.body, req.username, req.orgname)
+        .then((message) => {
+    	console.log("message===>"+message);
+        res.send(message);
+}).catch((err)=>{
+        res.send(err.message);
+});
+});
+
+//根据表名和参数批量新增数据
+app.post('/batch/:table', function (req, res) {
+
+    var table = req.params.table;
+    var group = req.body;
+    if (!group || group.length == 0) {
+        res.json(getError('req body can not be empty'));
+        return;
+    }
+    var end = group.length;
+    if (group instanceof Array == false) {
+        res.json(getError('req body must be Array'));
+        return;
+    }
+
+    const tps = 10;
+    var results = [];
+
+    var oneRoundInvoke = function (startLocation) {
+        var oneRoundInvokePromise = new Promise(function (resolve, reject) {
+            var promises = [];
+            for (var i = 0; i < tps && (startLocation + i) < end; i++) {
+                var invokePromise = insert(table, group[i], req.username, req.orgname)
+                    .then((message) => {
+                    results.push(getRes(true, "invoke", message));
+                return;
+            }).catch((message)=>{
+                    results.push(getRes(false, "invoke", message));
+            });
+                promises.push(invokePromise);
+            }
+            Promise.all(promises)
+                .then(() => {
+                resolve(startLocation + i);
+        }, (err) => {
+                reject(err);
+            });
+
+        });
+        return oneRoundInvokePromise
+            .then((startLocation) => {
+            if (startLocation < (end - 1)) {
+            return oneRoundInvoke(startLocation);
+        } else {
+            return Promise.resolve();
+        }
+    });
+    }
+    oneRoundInvoke(0)
+        .then(()=>{
+        res.json(results);
+})
+});
+
+function getError(message, key) {
+    var response = {
+        success: false,
+        key: key,
+        message: message
+    };
+    return response;
+}
+//获取背书节点
+var getPeers = function(){
+	var jsonPeers = config.peers;
+    var peers=[];
+    for (var i=0;i<jsonPeers.length;i++){
+        var peer = helper.getPeerAddressByName(jsonPeers[i].org, jsonPeers[i].peer)
+        peers.push(peer);
+    }
+    return peers;
+}
+
+//key is option
+function getRes(success, type, message, key) {
+    if (success == true &&
+        message.indexOf("Error") == -1 &&
+        message.indexOf("Failed") == -1 &&
+        message.indexOf("error") == -1) {
+        var response = {
+            success: success,
+        };
+        if (type == "query") {
+            response.result = JSON.parse(message).Data; //message;
+        } else if (type == "invoke") {
+            var invokeReturn = JSON.parse(message);
+            response.key = invokeReturn.key;
+            response.tx_id = invokeReturn.tx_id;
+        } else if (type == "couchdb") {
+            var jsonObject = JSON.parse(message);
+            if (jsonObject.warning) {
+                logger.warn("couchdb warning:", jsonObject.warning);
+            }
+            var docs = jsonObject.docs;
+            var size = docs.length;
+            var result = [];
+            for (var i = 0; i < size; i++) {
+                result.push(docs[i].data.Data);
+            }
+            response.result = result;
+        } else if (type == "trace") {
+            response.result = JSON.parse(message);
+        }else if (type == "raw") {
+            response.result = message;
+        }
+    } else {
+        return getError(message, key);
+    }
+    return response;
+};

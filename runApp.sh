@@ -56,9 +56,19 @@ function installNodeModules() {
 	echo
 }
 
+function startNetwork(){
+    ./startCaAndOrderer.sh
+    ./startPeer1.sh
+    ./startPeer2.sh
+}
 
-restartNetwork
 
+#restartNetwork
+
+export ENABLE_TLS=$(cat config.json | jq ".enableTLS" )
+
+echo "ENABLE_TLS:"${ENABLE_TLS}
+rm -rf mount
+startNetwork
 installNodeModules
-
 PORT=4000 node app

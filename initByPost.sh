@@ -20,6 +20,30 @@ echo
 echo "ORG1 token is $ORG1_TOKEN"
 echo
 
+echo "POST request Create channel  ..."
+echo
+curl -s -X POST \
+  http://localhost:4000/channels \
+  -H "authorization: Bearer $ORG1_TOKEN" \
+  -H "content-type: application/json" \
+  -d '{
+	"channelName":"mychannel",
+	"channelConfigPath":"../artifacts/channel/mychannel.tx"
+}'
+echo
+echo
+sleep 5
+echo "POST request Join channel on Org1"
+echo
+curl -s -X POST \
+  http://localhost:4000/channels/mychannel/peers \
+  -H "authorization: Bearer $ORG1_TOKEN" \
+  -H "content-type: application/json" \
+  -d '{
+	"peers": ["localhost:7051"]
+}'
+echo
+echo
 
 
 echo "POST Install chaincode on Org1"
@@ -31,14 +55,12 @@ curl -s -X POST \
   -d '{
 	"peers": ["localhost:7051"],
 	"chaincodeName":"zonergy",
-	"chaincodePath":"github.com/zonergy",
-	"chaincodeVersion":"v5"
+	"chaincodePath":"zonergy",
+	"chaincodeVersion":"v0"
 }'
 echo
 echo
 
-
-echo
 
 echo "POST instantiate chaincode on peer1 of Org1"
 echo
@@ -48,13 +70,11 @@ curl -s -X POST \
   -H "content-type: application/json" \
   -d '{
 	"chaincodeName":"zonergy",
-	"chaincodeVersion":"v5",
+	"chaincodeVersion":"v0",
 	"functionName":"init",
-	"args":[""],
-	"updateFlag":false
+	"args":[]
 }'
 echo
 echo
-
 
 echo "Total execution time : $(($(date +%s)-starttime)) secs ..."
