@@ -97,6 +97,7 @@ app.use(function (err, req, res, next) {
         status = 401;
         code = "token_error";
     } else {
+    	next();
         status = err.status;
     }
     res.status(status).send({

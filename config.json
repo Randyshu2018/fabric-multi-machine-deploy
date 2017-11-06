@@ -7,10 +7,19 @@
    "keyValueStore":"/tmp/fabric-client-kvs",
    "eventWaitTime":"30000",
    "orderer":"grpcs://localhost:7050",
+   "channelName": "mychannel",
+   "chaincodeName": "zonergy",
+   "enableTLS":false,
    "users":[
       {
          "username":"admin",
          "secret":"adminpw"
+      }
+   ],
+   "peers": [
+      {
+         "org": "org1",
+         "peer": "peer1"
       }
    ]
 }

@@ -31,8 +31,8 @@ curl -s -X POST \
   -d '{
 	"peers": ["localhost:7051"],
 	"chaincodeName":"zonergy",
-	"chaincodePath":"github.com/zonergy",
-	"chaincodeVersion":"v5"
+	"chaincodePath":"zonergy",
+	"chaincodeVersion":"v7"
 }'
 echo
 echo
@@ -48,10 +48,10 @@ curl -s -X POST \
   -H "content-type: application/json" \
   -d '{
 	"chaincodeName":"zonergy",
-	"chaincodeVersion":"v5",
+	"chaincodeVersion":"v7",
 	"functionName":"init",
 	"args":[""],
-	"updateFlag":false
+	"updateFlag":true
 }'
 echo
 echo

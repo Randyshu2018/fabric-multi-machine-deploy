@@ -17,7 +17,7 @@ function startCaAndOrderer() {
 
 	#Start the network
 	docker-compose -f docker-compose-ca.yaml up -d
-	docker-compose -f docker-compose-orderer.yaml up -d
+	docker-compose -f dc-orderer-kafka.yml up -d
 	cd -
 	echo
 }
