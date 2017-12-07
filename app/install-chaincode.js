@@ -14,23 +14,40 @@
  *  limitations under the License.
  */
 'use strict';
-var path = require('path');
-var fs = require('fs');
-var util = require('util');
-var config = require('../config.json');
+let util = require('util');
+let utils = require('./utils');
+let errors = require('./errors');
 var helper = require('./helper.js');
 var logger = helper.getLogger('install-chaincode');
-var tx_id = null;
 //function installChaincode(org) {
-var installChaincode = function(peers, chaincodeName, chaincodePath,
-	chaincodeVersion, username, org) {
+var installChaincode = function (req, res) {
 	logger.debug(
 		'\n============ Install chaincode on organizations ============\n');
+    let peers = req.body.peers;
+    if (utils.isEmpty(peers)) {
+        throw new errors.NotFound("peers");
+        return;
+    }
+    let chaincodeName = req.body.chaincodeName;
+    if (utils.isEmpty(chaincodeName)) {
+        throw new errors.NotFound("chaincodeName");
+        return;
+    }
+    let chaincodePath = req.body.chaincodePath;
+    if (utils.isEmpty(chaincodePath)) {
+        throw new errors.NotFound("chaincodePath");
+        return;
+    }
+    let chaincodeVersion = req.body.chaincodeVersion;
+    if (utils.isEmpty(chaincodeVersion)) {
+        throw new errors.NotFound("chaincodeVersion");
+        return;
+    }
+    let org = req.orgName;
 	helper.setupChaincodeDeploy();
-	var channel = helper.getChannelForOrg(org);
 	var client = helper.getClientForOrg(org);
 
-	return helper.getOrgAdmin(org).then((user) => {
+    return helper.getOrgAdmin(org).then((admin) => {
 		var request = {
 			targets: helper.newPeers(peers),
 			chaincodePath: chaincodePath,
@@ -62,18 +79,16 @@ var installChaincode = function(peers, chaincodeName, chaincodePath,
 				proposalResponses[0].response.status));
 			logger.debug('\nSuccessfully Installed chaincode on organization ' + org +
 				'\n');
-			return 'Successfully Installed chaincode on organization ' + org;
+            return res.json(utils.getResponse('Successfully Installed chaincode on organization ' + org));
 		} else {
 			logger.error(
 				'Failed to send install Proposal or receive valid response. Response null or status is not 200. exiting...'
 			);
-			return 'Failed to send install Proposal or receive valid response. Response null or status is not 200. exiting...';
+            return res.json(utils.getErrorMsg('Failed to send install Proposal or receive valid response. Response null or status is not 200. exiting...'));
 		}
 	}, (err) => {
-		logger.error('Failed to send install proposal due to error: ' + err.stack ?
-			err.stack : err);
-		throw new Error('Failed to send install proposal due to error: ' + err.stack ?
-			err.stack : err);
+        logger.error('Failed to send install proposal due to error: ' + (err.stack ? err.stack : err));
+        return res.json('Failed to send install proposal due to error: ' + err.stack);
 	});
 };
 exports.installChaincode = installChaincode;

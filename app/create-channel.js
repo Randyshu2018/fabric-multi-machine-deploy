@@ -16,13 +16,35 @@
 var util = require('util');
 var fs = require('fs');
 var path = require('path');
-var config = require('../config.json');
 var helper = require('./helper.js');
 var logger = helper.getLogger('Create-Channel');
-//Attempt to send a request to the orderer with the sendCreateChain method
-var createChannel = function(channelName, channelConfigPath, username, orgName) {
-	logger.debug('\n====== Creating Channel \'' + channelName + '\' ======\n');
-	var client = helper.getClientForOrg(orgName);
+
+var utils = require('./utils');
+var errors = require('./errors');
+
+
+/**
+ * Attempt to send a request to the orderer with the sendCreateChain method
+ */
+module.exports.createChannel = function (req, res) {
+    logger.debug('\n====== Creating Channel ======\n');
+    var channelName = req.body.channelName;
+    if (utils.isEmpty(channelName)) {
+        throw new errors.NotFound("channelName");
+        return;
+    }
+
+    var channelConfigPath = req.body.channelConfigPath;
+    if (utils.isEmpty(channelConfigPath)) {
+        throw new errors.NotFound("channelConfigPath");
+    }
+
+    var orgName = req.orgName;
+    if (utils.isEmpty(orgName)) {
+        throw new errors.NotFound("orgName");
+    }
+
+    var client = helper.getClientForOrg(orgName);
 	var channel = helper.getChannelForOrg(orgName);
 
 	// read in the envelope for the channel config raw bytes
@@ -32,43 +54,36 @@ var createChannel = function(channelName, channelConfigPath, username, orgName) 
 
 	//Acting as a client in the given organization provided with "orgName" param
 	return helper.getOrgAdmin(orgName).then((admin) => {
-		logger.debug(util.format('Successfully acquired admin user for the organization "%s"', orgName));
-		// sign the channel config bytes as "endorsement", this is required by
-		// the orderer's channel creation policy
-		let signature = client.signChannelConfig(channelConfig);
+        logger.debug(util.format('Successfully acquired admin user for the organization "%s"', orgName));
+        // sign the channel config bytes as "endorsement", this is required by
+        // the orderer's channel creation policy
+        let signature = client.signChannelConfig(channelConfig);
 
-		let request = {
-			config: channelConfig,
-			signatures: [signature],
-			name: channelName,
-			orderer: channel.getOrderers()[0],
-			txId: client.newTransactionID()
-		};
+        let request = {
+            config: channelConfig,
+            signatures: [signature],
+            name: channelName,
+            orderer: channel.getOrderers()[0],
+            txId: client.newTransactionID()
+        };
 
-		// send to orderer
-		return client.createChannel(request);
-	}, (err) => {
-		logger.error('Failed to enroll user \''+username+'\'. Error: ' + err);
-		throw new Error('Failed to enroll user \''+username+'\'' + err);
+        // send to orderer
+        return client.createChannel(request);
+    }).catch(function (err) {
+        logger.error('Failed to initialize the channel: ' + err.stack ? err.stack : err);
+        return utils.getResponse('Failed to initialize the channel: ' + err.stack ? err.stack : err, 500);
 	}).then((response) => {
 		logger.debug(' response ::%j', response);
 		if (response && response.status === 'SUCCESS') {
 			logger.debug('Successfully created the channel.');
-			let response = {
-				success: true,
-				message: 'Channel \'' + channelName + '\' created Successfully'
-			};
-		  return response;
+            return res.json(utils.getResponse('Channel \'' + channelName + '\' created Successfully'));
 		} else {
-			logger.error('\n!!!!!!!!! Failed to create the channel \'' + channelName +
-				'\' !!!!!!!!!\n\n');
-			throw new Error('Failed to create the channel \'' + channelName + '\'');
-		}
-	}, (err) => {
-		logger.error('Failed to initialize the channel: ' + err.stack ? err.stack :
-			err);
-		throw new Error('Failed to initialize the channel: ' + err.stack ? err.stack : err);
-	});
+            logger.error('\n!!!!!!!!! Failed to create the channel \'' + channelName + '\' !!!!!!!!!\n\n');
+            return res.json(utils.getErrorMsg('Failed to create the channel \'' + channelName + '\''));
+        }
+    }).catch(function (err) {
+        logger.error('Failed to initialize the channel: ' + err.stack ? err.stack : err);
+        return res.json(utils.getErrorMsg('Failed to create the channel \'' + channelName + '\''));
+    })
 };
 
-exports.createChannel = createChannel;

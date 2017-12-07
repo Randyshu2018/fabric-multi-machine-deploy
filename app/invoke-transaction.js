@@ -14,20 +14,55 @@
  *  limitations under the License.
  */
 'use strict';
-var path = require('path');
-var fs = require('fs');
 var util = require('util');
-var hfc = require('fabric-client');
-var Peer = require('fabric-client/lib/Peer.js');
-var config = require('../config.json');
+let utils = require('./utils');
+let errors = require('./errors');
 var helper = require('./helper.js');
 var logger = helper.getLogger('invoke-chaincode');
-var EventHub = require('fabric-client/lib/EventHub.js');
-hfc.addConfigFile(path.join(__dirname, 'network-config.json'));
-var ORGS = hfc.getConfigSetting('network-config');
 
-var invokeChaincode = function(peersUrls, channelName, chaincodeName, fcn, args, username, org) {
-	logger.error(util.format('\n============ invoke transaction on organization %s ============\n', org));
+var invokeChaincode = function (peersUrls, channelName, chaincodeName, functionName, data, username, org, tableName) {
+    // peersUrls, channelName, chaincodeName, fcn, args, username, org
+    if (utils.isEmpty(peersUrls)) {
+        throw new errors.NotFound("peersUrls");
+        return;
+    }
+    if (utils.isEmpty(channelName)) {
+        throw new errors.NotFound('channelName');
+        return;
+    }
+    if (utils.isEmpty(chaincodeName)) {
+        throw new errors.NotFound('chaincodeName');
+        return;
+    }
+    if (utils.isEmpty(functionName)) {
+        throw new errors.NotFound('functionName')
+        return;
+    }
+    if (utils.isEmpty(data)) {
+        throw new errors.NotFound('data')
+        return;
+    }
+    let id;
+    try {
+        id = JSON.parse(JSON.stringify(data)).id;
+        var jsonObject = {
+            "Table": tableName,
+            "Key": id.toString(),
+            "Data": data,
+            "Timestamp": Math.round(new Date().getTime() / 1000)
+        };
+
+        var args = [];
+        args[2] = JSON.stringify(jsonObject);
+        args[1] = id.toString();
+        args[0] = tableName;
+        logger.info(args);
+
+    } catch (e) {
+        throw new Error("data is not a json or data.id is not specify")
+    }
+
+
 	var client = helper.getClientForOrg(org);
 	var channel = helper.getChannelForOrg(org);
 	var targets = helper.newPeers(peersUrls);
@@ -41,7 +76,7 @@ var invokeChaincode = function(peersUrls, channelName, chaincodeName, fcn, args,
 		var request = {
 			targets: targets,
 			chaincodeId: chaincodeName,
-			fcn: fcn,
+            fcn: functionName,
 			args: args,
 			chainId: channelName,
 			txId: tx_id
@@ -135,17 +170,31 @@ var invokeChaincode = function(peersUrls, channelName, chaincodeName, fcn, args,
 	}).then((response) => {
 		if (response.status === 'SUCCESS') {
 			logger.info('Successfully sent transaction to the orderer.');
-			return tx_id.getTransactionID();
+            return utils.getResponse('Invoke successfully', 200, tx_id.getTransactionID());
 		} else {
 			logger.error('Failed to order the transaction. Error code: ' + response.status);
-			return 'Failed to order the transaction. Error code: ' + response.status;
+            return utils.getErrorMsg('Failed to order the transaction. Error code: ' + response.status);
 		}
 	}, (err) => {
 		logger.error('Failed to send transaction due to error: ' + err.stack ? err
 			.stack : err);
-		return 'Failed to send transaction due to error: ' + err.stack ? err.stack :
-			err;
+        return utils.getErrorMsg('Failed to send transaction due to error: ' + err.stack);
 	});
 };
 
-exports.invokeChaincode = invokeChaincode;
+module.exports.invokeChaincode = function (req, res) {
+    let channelName = req.body.channelName;
+    let chaincodeName = req.body.chaincodeName;
+    let peersUrls = req.body.peersUrls;
+    let functionName = req.body.functionName;
+    let tableName = req.body.tableName || "default-table";
+    let data = req.body.data;
+    let username = req.userName;
+    let orgName = req.orgName;
+    invokeChaincode(peersUrls, channelName, chaincodeName, functionName, data, username, orgName, tableName).then(message => {
+        return res.json(message);
+    }).catch(err => {
+        return res.json(err);
+    })
+}
+

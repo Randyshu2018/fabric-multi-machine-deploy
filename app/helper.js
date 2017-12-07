@@ -16,15 +16,15 @@
 'use strict';
 var log4js = require('log4js');
 var logger = log4js.getLogger('Helper');
-logger.setLevel('INFO');
+logger.setLevel('DEBUG');
 
 var path = require('path');
 var util = require('util');
 var fs = require('fs-extra');
 var User = require('fabric-client/lib/User.js');
-var crypto = require('crypto');
 var copService = require('fabric-ca-client');
 var config = require('../config.json');
+var errors = require('./errors');
 
 var hfc = require('fabric-client');
 if (config.enableTLS) {
@@ -44,7 +44,6 @@ var caClients = {};
 for (let key in ORGS) {
     if (key.indexOf('org') === 0) {
         let client = new hfc();
-
         let cryptoSuite = hfc.newCryptoSuite();
         cryptoSuite.setCryptoKeyStore(hfc.newCryptoKeyStore({
             path: getKeyStoreForOrg(ORGS[key].name)
@@ -259,11 +258,13 @@ var getAdminUser = function(userOrg) {
                 }).then(() => {
                     return member;
                 }).catch((err) => {
-                    logger.error('Failed to enroll and persist user. Error: ' + err.stack ?
-                        err.stack : err);
+                    logger.error('Failed to enroll and persist user. Error: ' + (err.stack ?
+                        err.stack : err));
                     return null;
                 });
             }
+        }).catch(function (err) {
+            console.log("mmp" + err);
         });
     });
 };
@@ -314,16 +315,16 @@ var getRegisteredUsers = function(username, userOrg, isJson) {
                     member._enrollmentSecret = enrollmentSecret;
                     return member.setEnrollment(message.key, message.certificate, getMspID(userOrg));
                 }).then(() => {
-                    client.setUserContext(member);
-                    return member;
+                    return client.setUserContext(member, false);
+                    // return member;
                 }, (err) => {
                     logger.error(util.format('%s enroll failed: %s', username, err.stack ? err.stack : err));
                     return '' + err;
-                });;
+                });
             }
-        });
+        })
     }).then((user) => {
-        if (isJson && isJson === true) {
+        if (user != null && isJson && isJson === true) {
             var response = {
                 success: true,
                 //	secret: user._enrollmentSecret,

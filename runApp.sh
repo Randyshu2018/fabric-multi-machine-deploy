@@ -57,18 +57,42 @@ function installNodeModules() {
 }
 
 function startNetwork(){
-    ./startCaAndOrderer.sh
-    ./startPeer1.sh
-    ./startPeer2.sh
+    cd artifacts
+
+    #Start the network
+	docker-compose -f docker-compose-ca.yaml up -d
+
+	docker-compose -f docker-orderer-kafka.yaml up -d
+
+	docker-compose -f docker-compose-peer1-couchdb.yaml up -d
+
+	docker-compose -f docker-compose-peer2-couchdb.yaml up -d
+
+    cd -
 }
 
+function cleanNetwork() {
+	echo
 
-#restartNetwork
+	dkcl
+	dkrm
 
+	#Cleanup the material
+	rm -rf /tmp/hfc-test-kvs_peerOrg* $HOME/.hfc-key-store/ /tmp/fabric-client-kvs_peerOrg*
+
+}
+
+cleanNetwork
 export ENABLE_TLS=$(cat config.json | jq ".enableTLS" )
 
 echo "ENABLE_TLS:"${ENABLE_TLS}
 rm -rf mount
 startNetwork
 installNodeModules
-PORT=4000 node app
+#杀掉node进程
+ps -e|grep node|awk '{print $1}' | xargs -n1 kill -9
+nohup node server.js  > server.log 2>&1 &
+sleep 5
+./script/initByPost.sh
+#./script/initByPost.sh
+#node server.js

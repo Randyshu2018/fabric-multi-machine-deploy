@@ -17,9 +17,9 @@
 var path = require('path');
 var fs = require('fs');
 var util = require('util');
+let utils = require('./utils');
+let errors = require('./errors');
 var hfc = require('fabric-client');
-var Peer = require('fabric-client/lib/Peer.js');
-var EventHub = require('fabric-client/lib/EventHub.js');
 var config = require('../config.json');
 var helper = require('./helper.js');
 var logger = helper.getLogger('instantiate-chaincode');
@@ -32,10 +32,27 @@ var ORGS = hfc.getConfigSetting('network-config');
 var tx_id = null;
 var eh = null;
 
-var instantiateChaincode = function(channelName, chaincodeName, chaincodeVersion, functionName, args, username, org) {
-	logger.debug('\n============ Instantiate chaincode on organization ' + org +
-		' ============\n');
+var instantiateChaincode = function (req, res) {
 
+    let chaincodeName = req.body.chaincodeName;
+    if (utils.isEmpty(chaincodeName)) {
+        throw new errors.NotFound('chaincodeName');
+        return;
+    }
+    let chaincodeVersion = req.body.chaincodeVersion;
+    if (utils.isEmpty(chaincodeVersion)) {
+        throw new errors.NotFound('chaincodeVersion');
+        return;
+    }
+    let functionName = req.body.functionName;
+    if (utils.isEmpty(functionName)) {
+        throw new errors.NotFound('functionName')
+        return;
+    }
+    let args = req.body.args;
+    let org = req.orgName;
+    logger.debug('\n============ Instantiate chaincode on organization ' + org +
+        ' ============\n');
 	var channel = helper.getChannelForOrg(org);
 	var client = helper.getClientForOrg(org);
 
@@ -57,7 +74,7 @@ var instantiateChaincode = function(channelName, chaincodeName, chaincodeVersion
 			args: args,
 			txId: tx_id
 		};
-		return channel.sendInstantiateProposal(request);
+        return channel.sendInstantiateProposal(request, config.eventWaitTime);
 	}, (err) => {
 		logger.error('Failed to initialize the channel');
 		throw new Error('Failed to initialize the channel');
@@ -103,14 +120,6 @@ var instantiateChaincode = function(channelName, chaincodeName, chaincodeVersion
             } else {
                 eh.setPeerAddr(ORGS[org]['peer1']['events']);
             }
-			// let data = fs.readFileSync(path.join(__dirname, ORGS[org]['peer1'][
-			// 	'tls_cacerts'
-			// ]));
-			// eh.setPeerAddr(ORGS[org]['peer1']['events'], {
-			// 	pem: Buffer.from(data).toString(),
-			// 	'ssl-target-name-override': ORGS[org]['peer1']['server-hostname']
-			// });
-			eh.connect();
 
 			let txPromise = new Promise((resolve, reject) => {
 				let handle = setTimeout(() => {
@@ -133,10 +142,13 @@ var instantiateChaincode = function(channelName, chaincodeName, chaincodeVersion
 						logger.info('The chaincode instantiate transaction was valid.');
 						resolve();
 					}
-				});
+                }, function (err) {
+                    console.log(err);
+                });
 			});
+            eh.connect();
 
-			var sendPromise = channel.sendTransaction(request);
+            var sendPromise = channel.sendTransaction(request);
 			return Promise.all([sendPromise].concat([txPromise])).then((results) => {
 				logger.debug('Event promise all complete and testing complete');
 				return results[0]; // the first returned value is from the 'sendPromise' which is from the 'sendTransaction()' call
@@ -160,16 +172,15 @@ var instantiateChaincode = function(channelName, chaincodeName, chaincodeVersion
 	}).then((response) => {
 		if (response.status === 'SUCCESS') {
 			logger.info('Successfully sent transaction to the orderer.');
-			return 'Chaincode Instantiateion is SUCCESS';
+            return res.json(utils.getResponse('Chaincode Instantiation is SUCCESS'));
 		} else {
 			logger.error('Failed to order the transaction. Error code: ' + response.status);
-			return 'Failed to order the transaction. Error code: ' + response.status;
+            return res.json(utils.getErrorMsg('Failed to order the transaction. Error code: ' + response.status));
 		}
 	}, (err) => {
 		logger.error('Failed to send instantiate due to error: ' + err.stack ? err
 			.stack : err);
-		return 'Failed to send instantiate due to error: ' + err.stack ? err.stack :
-			err;
+        return res.json('Failed to send instantiate due to error: ' + err.stack);
 	});
 };
 exports.instantiateChaincode = instantiateChaincode;

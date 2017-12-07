@@ -14,13 +14,12 @@
  *  limitations under the License.
  */
 var util = require('util');
+var utils = require('./utils');
+var errors = require('./errors');
 var path = require('path');
 var fs = require('fs');
 
-var Peer = require('fabric-client/lib/Peer.js');
-var EventHub = require('fabric-client/lib/EventHub.js');
 var tx_id = null;
-var nonce = null;
 var config = require('../config.json');
 var helper = require('./helper.js');
 var logger = helper.getLogger('Join-Channel');
@@ -31,7 +30,22 @@ var allEventhubs = [];
 //
 //Attempt to send a request to the orderer with the sendCreateChain method
 //
-var joinChannel = function(channelName, peers, username, org) {
+var joinChannel = function (req, res) {
+    var channelName = req.body.channelName;
+    if (utils.isEmpty(channelName)) {
+        throw new errors.NotFound("channelName");
+        return;
+    }
+    var peers = req.body.peers;
+    if (utils.isEmpty(peers)) {
+        throw new errors.NotFound("peers");
+        return;
+    }
+    var orgName = req.orgName;
+    if (utils.isEmpty(orgName)) {
+        throw new errors.NotFound("orgName");
+        return;
+    }
     // on process exit, always disconnect the event hub
     var closeConnections = function(isSuccess) {
         if (isSuccess) {
@@ -50,14 +64,13 @@ var joinChannel = function(channelName, peers, username, org) {
     };
     //logger.debug('\n============ Join Channel ============\n')
     logger.info(util.format(
-        'Calling peers in organization "%s" to join the channel', org));
+        'Calling peers in organization "%s" to join the channel', orgName));
 
-    var client = helper.getClientForOrg(org);
-    var channel = helper.getChannelForOrg(org);
+    var client = helper.getClientForOrg(orgName);
+    var channel = helper.getChannelForOrg(orgName);
     var eventhubs = [];
-
-    return helper.getOrgAdmin(org).then((admin) => {
-        logger.info(util.format('received member object for admin of the organization "%s": ', org));
+    return helper.getOrgAdmin(orgName).then((admin) => {
+        logger.info(util.format('received member object for admin of the organization "%s": ', orgName));
         tx_id = client.newTransactionID();
         let request = {
             txId: tx_id
@@ -72,21 +85,21 @@ var joinChannel = function(channelName, peers, username, org) {
             block: genesis_block
         };
 
-        for (let key in ORGS[org]) {
-            if (ORGS[org].hasOwnProperty(key)) {
+        for (let key in ORGS[orgName]) {
+            if (ORGS[orgName].hasOwnProperty(key)) {
                 if (key.indexOf('peer') === 0) {
                     let eh = client.newEventHub();
 
                     if (config.enableTLS) {
-                        let data = fs.readFileSync(path.join(__dirname, ORGS[org][key][
+                        let data = fs.readFileSync(path.join(__dirname, ORGS[orgName][key][
                             'tls_cacerts'
                             ]));
-                        eh.setPeerAddr(ORGS[org][key].events, {
+                        eh.setPeerAddr(ORGS[orgName][key].events, {
                             pem: Buffer.from(data).toString(),
-                            'ssl-target-name-override': ORGS[org][key]['server-hostname']
+                            'ssl-target-name-override': ORGS[orgName][key]['server-hostname']
                         });
                     } else {
-                        eh.setPeerAddr(ORGS[org][key].events);
+                        eh.setPeerAddr(ORGS[orgName][key].events);
                     }
 
                     eh.connect();
@@ -113,6 +126,8 @@ var joinChannel = function(channelName, peers, username, org) {
                             reject();
                         }
                     }
+                }, (err) => {
+                    reject(err);
                 });
             });
             eventPromises.push(txPromise);
@@ -120,36 +135,39 @@ var joinChannel = function(channelName, peers, username, org) {
         let sendPromise = channel.joinChannel(request);
         return Promise.all([sendPromise].concat(eventPromises));
     }, (err) => {
-        logger.error('Failed to enroll user \'' + username + '\' due to error: ' +
+        logger.error('Failed to enroll user \'' + 'admin' + '\' due to error: ' +
         err.stack ? err.stack : err);
-        throw new Error('Failed to enroll user \'' + username +
+        throw new Error('Failed to enroll user \'' + 'admin' +
         '\' due to error: ' + err.stack ? err.stack : err);
+    }).catch(err => {
+        return err;
     }).then((results) => {
         logger.debug(util.format('Join Channel R E S P O N S E : %j', results));
-        if (results[0] && results[0][0] && results[0][0].response && results[0][0]
+        if (results && results[0] && results[0][0] && results[0][0].response && results[0][0]
                 .response.status == 200) {
             logger.info(util.format(
                 'Successfully joined peers in organization %s to the channel \'%s\'',
-                org, channelName));
+                orgName, channelName));
             closeConnections(true);
-            let response = {
-                success: true,
-                message: util.format(
-                    'Successfully joined peers in organization %s to the channel \'%s\'',
-                    org, channelName)
-            };
-            return response;
+            // let response = {
+            //     success: true,
+            //     message: util.format(
+            //         'Successfully joined peers in organization %s to the channel \'%s\'',
+            //         orgName, channelName)
+            // };
+            return res.json(utils.getResponse(util.format(
+                'Successfully joined peers in organization %s to the channel \'%s\'',
+                orgName, channelName)));
         } else {
             logger.error(' Failed to join channel');
             closeConnections();
-            throw new Error('Failed to join channel');
+            return res.json(utils.getErrorMsg("Failed to join channel"))
         }
     }, (err) => {
         logger.error('Failed to join channel due to error: ' + err.stack ? err.stack :
             err);
         closeConnections();
-        throw new Error('Failed to join channel due to error: ' + err.stack ? err.stack :
-            err);
+        return res.json(utils.getErrorMsg("Failed to join channel"));
     });
 };
 exports.joinChannel = joinChannel;

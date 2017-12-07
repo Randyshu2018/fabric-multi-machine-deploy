@@ -21,6 +21,20 @@
 				"key": "../artifacts/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore",
 				"cert": "../artifacts/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts"
 			}
+        },
+      "org2": {
+        "name": "peerOrg2",
+        "mspid": "Org2MSP",
+        "ca": "http://localhost:7054",
+        "peer1": {
+          "requests": "grpc://localhost:8051",
+          "events": "grpc://localhost:8053",
+          "server-hostname": "peer0.org2.example.com"
+        },
+        "admin": {
+          "key": "../artifacts/channel/crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/keystore",
+          "cert": "../artifacts/channel/crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/signcerts"
+        }
 
 		}
 	}
