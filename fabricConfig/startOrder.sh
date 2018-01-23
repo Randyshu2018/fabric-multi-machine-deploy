@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-export FABRIC_CFG_PATH=/etc/hyperledger/fabric
+#export FABRIC_CFG_PATH=/etc/hyperledger/fabric
 export ORDERER_GENERAL_LOGLEVEL=DEBUG #输出日志级别
 export ORDERER_GENERAL_LISTENADDRESS=0.0.0.0 #服务监听地址
 export ORDERER_GENERAL_LISTENPORT=7050 #服务监听端口

@@ -62,7 +62,6 @@ var invokeChaincode = function (peersUrls, channelName, chaincodeName, functionN
         throw new Error("data is not a json or data.id is not specify")
     }
 
-
 	var client = helper.getClientForOrg(org);
 	var channel = helper.getChannelForOrg(org);
 	var targets = helper.newPeers(peersUrls);
@@ -72,7 +71,7 @@ var invokeChaincode = function (peersUrls, channelName, chaincodeName, functionN
 		tx_id = client.newTransactionID();
 		logger.debug(util.format('Sending transaction "%j"', tx_id));
 		// send proposal to endorser
-		console.log(JSON.stringify(args));
+        console.log("==>" + JSON.stringify(args));
 		var request = {
 			targets: targets,
 			chaincodeId: chaincodeName,
@@ -191,6 +190,8 @@ module.exports.invokeChaincode = function (req, res) {
     let data = req.body.data;
     let username = req.userName;
     let orgName = req.orgName;
+    console.log("orgName:" + orgName);
+    console.log("username:" + username);
     invokeChaincode(peersUrls, channelName, chaincodeName, functionName, data, username, orgName, tableName).then(message => {
         return res.json(message);
     }).catch(err => {

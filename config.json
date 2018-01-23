@@ -9,7 +9,7 @@
    "orderer":"grpcs://localhost:7050",
    "channelName": "mychannel",
    "chaincodeName": "zonergy",
-   "enableTLS":false,
+  "enableTLS": true,
    "users":[
       {
          "username":"admin",

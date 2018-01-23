@@ -75,7 +75,8 @@ function generateChannelArtifacts() {
 	echo
 }
 
-#generateCerts
+#buildCryptogenTools
+generateCerts
 #replacePrivateKey
-#generateChannelArtifacts
-buildCryptogenTools
+generateChannelArtifacts
+

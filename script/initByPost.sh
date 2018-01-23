@@ -13,7 +13,7 @@ echo
 ORG1_TOKEN=$(curl -s -X POST \
   http://localhost:4000/users \
   -H "content-type: application/x-www-form-urlencoded" \
-  -d 'username=Jim&orgName=org1')
+  -d 'userName=Jim1&orgName=org1')
 echo $ORG1_TOKEN
 ORG1_TOKEN=$(echo $ORG1_TOKEN | jq ".data" | sed "s/\"//g")
 echo
@@ -23,7 +23,7 @@ echo
 ORG2_TOKEN=$(curl -s -X POST \
   http://localhost:4000/users \
   -H "content-type: application/x-www-form-urlencoded" \
-  -d 'username=Randy&orgName=org2')
+  -d 'userName=Randy2&orgName=org2')
 echo $ORG2_TOKEN
 ORG2_TOKEN=$(echo $ORG2_TOKEN | jq ".data" | sed "s/\"//g")
 echo

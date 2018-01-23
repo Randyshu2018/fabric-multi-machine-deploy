@@ -12,6 +12,7 @@ var config = require('../config.json');
 var helper = require('../app/helper.js');
 var errors = require('../app/errors');
 var utils = require('../app/utils');
+var path = require('path');
 app.set('host', process.env.HOST || 'localhost');
 app.set('port', process.env.PORT || 4000);
 var sdkUtil = require('../app'); //<co id="web-express-routes-4-1" />
@@ -39,6 +40,8 @@ app.use(expressJWT({
     path: ['/users', '/^\\/static\\/.*/']
 }));
 app.use('/static', express.static('public'));
+app.use(express.static(path.join(__dirname, 'web')));
+
 app.use(bearerToken());
 app.use(function (req, res, next) {
     if (req.originalUrl.indexOf('/users') >= 0) {
@@ -60,22 +63,25 @@ app.use(function (req, res, next) {
         } else {
             // add the decoded user name and org name to the request object
             // for the downstream code to use
-            req.userName = decoded.username;
+            req.userName = decoded.userName;
             req.orgName = decoded.orgName;
-            logger.debug(util.format('Decoded from JWT token: username - %s, orgname - %s', decoded.username, decoded.orgName));
+            logger.debug(util.format('Decoded from JWT token: username - %s, orgname - %s', decoded.userName, decoded.orgName));
             return next();
         }
     });
 });
 // Register and enroll user
+app.get("/", function (req, res) {
+    res.sendfile("index.html");
+})
 app.post('/users', function (req, res) {
-    var username = req.body.username;
+    var userName = req.body.userName;
     var orgName = req.body.orgName;
     logger.debug('End point : /users');
-    logger.debug('User name : ' + username);
+    logger.debug('User name : ' + userName);
     logger.debug('Org name  : ' + orgName);
-    if (!username) {
-        throw new errors.NotFound("username");
+    if (!userName) {
+        throw new errors.NotFound("userName");
         return;
     }
     if (!orgName) {
@@ -84,10 +90,10 @@ app.post('/users', function (req, res) {
     }
     var token = jwt.sign({
         exp: Math.floor(Date.now() / 1000) + parseInt(config.jwt_expiretime),
-        username: username,
+        userName: userName,
         orgName: orgName
     }, app.get('secret'));
-    helper.getRegisteredUsers(username, orgName, true).then(function (response) {
+    helper.getRegisteredUsers(userName, orgName, true).then(function (response) {
         if (response && typeof response !== 'string') {
             res.json(utils.getResponse(response.message, 200, token));
         } else {
@@ -105,6 +111,10 @@ app.post('/instantiateChaincode', sdkUtil.instantiateChaincode.instantiateChainc
 app.post('/upgradeChaincode', sdkUtil.upgradeChaincode.upgradeChaincode);
 app.post('/invokeChaincode', sdkUtil.invokeChaincode.invokeChaincode);
 app.post('/invokeChaincodebatch', sdkUtil.invokeChaincodeBatch.invokeChaincodeBatch);
+
+app.get('/channels', sdkUtil.api.channels);
+app.get('/peers', sdkUtil.api.peers);
+app.post('/registerBlockListener', sdkUtil.eventListener.registerBlockEvent);
 
 
 app.use(function (err, req, res, next) {

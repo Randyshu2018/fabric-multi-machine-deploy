@@ -8,9 +8,8 @@
   },
   "watch": [
     "app/",
-    "routers/",
     "server.js",
-    "appTest.js"
+    "js/"
   ],
   "env": {
     "NODE_ENV": "development"

@@ -13,45 +13,42 @@ echo
 ORG1_TOKEN=$(curl -s -X POST \
   http://localhost:4000/users \
   -H "content-type: application/x-www-form-urlencoded" \
-  -d 'username=Jim&orgName=org1')
+  -d 'userName=Jim&orgName=org1')
 echo $ORG1_TOKEN
-ORG1_TOKEN=$(echo $ORG1_TOKEN | jq ".token" | sed "s/\"//g")
+ORG1_TOKEN=$(echo $ORG1_TOKEN | jq ".data" | sed "s/\"//g")
 echo
 echo "ORG1 token is $ORG1_TOKEN"
 echo
 
 
 
-echo "POST Install chaincode on Org1"
+echo "POST Install chaincode on Org2"
 echo
 curl -s -X POST \
-  http://localhost:4000/chaincodes \
+  http://localhost:4000/installChaincode \
   -H "authorization: Bearer $ORG1_TOKEN" \
   -H "content-type: application/json" \
   -d '{
 	"peers": ["localhost:7051"],
-	"chaincodeName":"zonergy",
-	"chaincodePath":"zonergy",
-	"chaincodeVersion":"v7"
+	"chaincodeName":"marbles02",
+	"chaincodePath":"marbles02",
+	"chaincodeVersion":"v0"
 }'
 echo
 echo
 
 
-echo
-
-echo "POST instantiate chaincode on peer1 of Org1"
+echo "POST instantiate chaincode on peer of Org1"
 echo
 curl -s -X POST \
-  http://localhost:4000/channels/mychannel/chaincodes \
+  http://localhost:4000/instantiateChaincode \
   -H "authorization: Bearer $ORG1_TOKEN" \
   -H "content-type: application/json" \
   -d '{
-	"chaincodeName":"zonergy",
-	"chaincodeVersion":"v7",
+	"chaincodeName":"marbles02",
+	"chaincodeVersion":"v0",
 	"functionName":"init",
-	"args":[""],
-	"updateFlag":true
+	"args":[]
 }'
 echo
 echo
