@@ -13,10 +13,10 @@ services:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
       - FABRIC_CA_SERVER_CA_NAME=ca.org1.example.com
       - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.org1.example.com-cert.pem
-      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/6997dd99893af0762ab143075e9bdce5db491745c0a1a99015c955abb33127ae_sk
+      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/9b777240231edd102ca6ebc4291c91ada6511e1b8cb8c05ad69443b1f235cdae_sk
       - FABRIC_CA_SERVER_TLS_ENABLED=${ENABLE_TLS}
       - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.org1.example.com-cert.pem
-      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/6997dd99893af0762ab143075e9bdce5db491745c0a1a99015c955abb33127ae_sk
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/9b777240231edd102ca6ebc4291c91ada6511e1b8cb8c05ad69443b1f235cdae_sk
     ports:
       - "7054:7054"
     command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
@@ -30,10 +30,10 @@ services:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
       - FABRIC_CA_SERVER_CA_NAME=ca.org2.example.com
       - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.org2.example.com-cert.pem
-      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/4080bd3fd2f34c1eaca3734a10bea946523f65976cfc78c9bd5259c59eefa298_sk
+      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/85f7ab6498078973abf58271b9bd2a12dbc76254a9a5fcf92a139b6586c2ac40_sk
       - FABRIC_CA_SERVER_TLS_ENABLED=${ENABLE_TLS}
       - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.org2.example.com-cert.pem
-      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/4080bd3fd2f34c1eaca3734a10bea946523f65976cfc78c9bd5259c59eefa298_sk
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/85f7ab6498078973abf58271b9bd2a12dbc76254a9a5fcf92a139b6586c2ac40_sk
     ports:
       - "8054:7054"
     command: sh -c 'fabric-ca-server start -b admin:adminpw -d'

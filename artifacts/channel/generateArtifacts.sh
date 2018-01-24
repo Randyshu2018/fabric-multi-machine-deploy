@@ -22,18 +22,18 @@ function replacePrivateKey () {
 		OPTS="-i"
 	fi
 
-	cp ../docker-compose-template.yaml ../docker-compose.yaml
+	cp ../docker-compose-ca-template.yaml ../docker-compose-ca.yaml
 
         CURRENT_DIR=$PWD
         cd crypto-config/peerOrganizations/org1.example.com/ca/
         PRIV_KEY=$(ls *_sk)
 	echo "=================\"$PRIV_KEY\"======================"
         cd $CURRENT_DIR
-        sed $OPTS "s/CA1_PRIVATE_KEY/${PRIV_KEY}/g" ../docker-compose.yaml
+        sed $OPTS "s/CA1_PRIVATE_KEY/${PRIV_KEY}/g" ../docker-compose-ca.yaml
         cd crypto-config/peerOrganizations/org2.example.com/ca/
         PRIV_KEY=$(ls *_sk)
         cd $CURRENT_DIR
-        sed $OPTS "s/CA2_PRIVATE_KEY/${PRIV_KEY}/g" ../docker-compose.yaml
+        sed $OPTS "s/CA2_PRIVATE_KEY/${PRIV_KEY}/g" ../docker-compose-ca.yaml
 }
 
 ## Generates Org certs using cryptogen tool
@@ -75,8 +75,8 @@ function generateChannelArtifacts() {
 	echo
 }
 
-#buildCryptogenTools
+buildCryptogenTools
 generateCerts
-#replacePrivateKey
+replacePrivateKey
 generateChannelArtifacts
 
