@@ -99,7 +99,3 @@ nohup node server.js  > server.log 2>&1 &
 sleep 5
 #初始化fabric运行网络
 ./script/initByPost.sh
-
-./connection/multi_org/clear.sh
-
-#./connection/multi_org/run.sh
