@@ -90,4 +90,7 @@ To retrieve the IP Address for one of your network entities, issue the following
 docker inspect peer0 | grep IPAddress
 ```
 
+#### Hyperledger Composer
+If you are interest in hyperledger-composer you can move step to [Hyperledger-composer](https://github.com/Randyshu2018/fabric-multi-machine-deploy/tree/master/hyperledger-composer) 
+
 <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
